@@ -1,0 +1,10 @@
+{
+    "whitelisted_device_ids": [
+        "DEVICE_ID_1",
+        "DEVICE_ID_2"
+    ],
+    "device_ble_name": "/org/bluez/hci0/dev_F6_9E_2F_D8_3A_59",
+    "node": "https://nodes.iota.cafe:443",
+    "mwm": 14,
+    "local_pow": false
+}
