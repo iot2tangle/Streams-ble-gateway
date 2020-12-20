@@ -12,6 +12,13 @@ use std::{process, thread};
 
 use std::str;
 
+extern crate btleplug;
+extern crate rand;
+
+use btleplug::api::{Central, CentralEvent};
+#[cfg(target_os = "linux")]
+use btleplug::bluez::{adapter::ConnectedAdapter, manager::Manager};
+
 use blurz::bluetooth_adapter::BluetoothAdapter;
 use blurz::bluetooth_device::BluetoothDevice;
 use blurz::bluetooth_discovery_session::BluetoothDiscoverySession;
@@ -47,75 +54,48 @@ pub async fn start(
     println!("Scanning..");
     for device_path in devices {
         let device = BluetoothDevice::new(session, device_path.to_string());
-        println!(
-            "Device: {:?} Name: {:?}",
-            device_path,
-            device.get_name().ok()
-        );
     }
 
     let device = BluetoothDevice::new(session, ble_device);
 
-    if let Err(e) = device.connect(30000) {
-        println!("Failed to connect {:?}: {:?}", device.get_id(), e);
-    } else {
-        println!("Connected!");
-        thread::sleep(Duration::from_millis(5000));
+    loop {
+        if let Err(e) = device.connect(30000) {
+            println!("Failed to connect, trying again....");
+        } else {
+            println!("Connected!");
+            break;
+        }
+        thread::sleep(Duration::from_millis(8000));
     }
+    loop {
+        let services_list = device.get_gatt_services().unwrap();
 
-    let services_list = device.get_gatt_services().unwrap();
+        for service_path in services_list {
+            let service = BluetoothGATTService::new(session, service_path.to_string());
+            let uuid_service = service.get_uuid().unwrap();
 
-    for service_path in services_list {
-        let service = BluetoothGATTService::new(session, service_path.to_string());
-        let uuid = service.get_uuid().unwrap();
-        let assigned_number = RE
-            .captures(&uuid)
-            .unwrap()
-            .get(1)
-            .map_or("", |m| m.as_str());
+            if uuid_service == "00000192-0000-1000-8000-00805f9b34fb" {
+                let characteristics = service.get_gatt_characteristics().unwrap();
+                for characteristic_path in characteristics {
+                    let characteristic =
+                        BluetoothGATTCharacteristic::new(session, characteristic_path);
+                    let uuid_char = characteristic.get_uuid().unwrap();
 
-        println!(
-            "Service UUID: {:?} Assigned Number: 0x{:?}",
-            uuid, assigned_number
-        );
+                    if uuid_char == "00000777-0000-1000-8000-00805f9b34fb" {
+                        let descriptors = characteristic.get_gatt_descriptors().unwrap();
+                        for descriptor_path in descriptors {
+                            let descriptor = BluetoothGATTDescriptor::new(session, descriptor_path);
+                            let uuid_desc = descriptor.get_uuid().unwrap();
+                            let value = descriptor.read_value(None).unwrap();
 
-        let characteristics = service.get_gatt_characteristics().unwrap();
-        for characteristic_path in characteristics {
-            let characteristic = BluetoothGATTCharacteristic::new(session, characteristic_path);
-            let uuid = characteristic.get_uuid().unwrap();
-            let assigned_number = RE
-                .captures(&uuid)
-                .unwrap()
-                .get(1)
-                .map_or("", |m| m.as_str());
-            let flags = characteristic.get_flags().unwrap();
-
-            println!(
-                " Characteristic Assigned Number: 0x{:?} Flags: {:?}",
-                assigned_number, flags
-            );
-
-            let descriptors = characteristic.get_gatt_descriptors().unwrap();
-            for descriptor_path in descriptors {
-                let descriptor = BluetoothGATTDescriptor::new(session, descriptor_path);
-                let uuid = descriptor.get_uuid().unwrap();
-                let assigned_number = RE
-                    .captures(&uuid)
-                    .unwrap()
-                    .get(1)
-                    .map_or("", |m| m.as_str());
-                let value = descriptor.read_value(None).unwrap();
-
-                let value = match &assigned_number[4..] {
-                    "2901" => str::from_utf8(&value).unwrap().to_string(),
-                    _ => format!("{:?}", value),
-                };
-
-                println!(
-                    "    Descriptor Assigned Number: 0x{:?} Read Value: {:?}",
-                    assigned_number, value
-                );
+                            if uuid_desc == "00008888-0000-1000-8000-00805f9b34fb" {
+                                println!("Value Sent {:?}", str::from_utf8(&value).unwrap());
+                            }
+                        }
+                    }
+                }
             }
         }
+        thread::sleep(Duration::from_millis(10000));
     }
 }
