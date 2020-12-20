@@ -3,22 +3,19 @@ extern crate regex;
 
 use crate::ble_connectivity::handlers::handle_sensor_data;
 use crate::device_auth::keystore::KeyManager;
-use crate::types::static_topic::StaticTopic;
+use crate::types::ble_config::BleConfig;
 use gateway_core::gateway::publisher::Channel;
 
 use std::sync::{Arc, Mutex};
+use std::thread;
 use std::time::Duration;
-use std::{process, thread};
 
 use std::str;
 
 extern crate btleplug;
 extern crate rand;
 
-use btleplug::api::{Central, CentralEvent};
 #[cfg(target_os = "linux")]
-use btleplug::bluez::{adapter::ConnectedAdapter, manager::Manager};
-
 use blurz::bluetooth_adapter::BluetoothAdapter;
 use blurz::bluetooth_device::BluetoothDevice;
 use blurz::bluetooth_discovery_session::BluetoothDiscoverySession;
@@ -38,7 +35,7 @@ lazy_static! {
 ///
 pub async fn start(
     device_list: Vec<String>,
-    ble_device: String,
+    ble_config: BleConfig,
     channel: Arc<Mutex<Channel>>,
     keystore: Arc<Mutex<KeyManager>>,
 ) -> () {
@@ -54,13 +51,15 @@ pub async fn start(
     println!("Scanning..");
     for device_path in devices {
         let device = BluetoothDevice::new(session, device_path.to_string());
+        println!("{:?}-{:?}", device.get_address(), device.get_name());
     }
 
-    let device = BluetoothDevice::new(session, ble_device);
+    let device = BluetoothDevice::new(session, ble_config.device_ble_name);
 
     loop {
         if let Err(e) = device.connect(30000) {
             println!("Failed to connect, trying again....");
+            println!("{}", e);
         } else {
             println!("Connected!");
             break;
@@ -74,21 +73,21 @@ pub async fn start(
             let service = BluetoothGATTService::new(session, service_path.to_string());
             let uuid_service = service.get_uuid().unwrap();
 
-            if uuid_service == "00000192-0000-1000-8000-00805f9b34fb" {
+            if uuid_service == ble_config.service_uuid {
                 let characteristics = service.get_gatt_characteristics().unwrap();
                 for characteristic_path in characteristics {
                     let characteristic =
                         BluetoothGATTCharacteristic::new(session, characteristic_path);
                     let uuid_char = characteristic.get_uuid().unwrap();
 
-                    if uuid_char == "00000777-0000-1000-8000-00805f9b34fb" {
+                    if uuid_char == ble_config.char_uuid {
                         let descriptors = characteristic.get_gatt_descriptors().unwrap();
                         for descriptor_path in descriptors {
                             let descriptor = BluetoothGATTDescriptor::new(session, descriptor_path);
                             let uuid_desc = descriptor.get_uuid().unwrap();
                             let value = descriptor.read_value(None).unwrap();
 
-                            if uuid_desc == "00008888-0000-1000-8000-00805f9b34fb" {
+                            if uuid_desc == ble_config.desc_uuid {
                                 println!("Value Sent {:?}", str::from_utf8(&value).unwrap());
                             }
                         }

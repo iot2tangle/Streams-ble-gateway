@@ -1,6 +1,7 @@
 use gateway_core::gateway::publisher::Channel;
 use local::ble_connectivity::ble_client;
 use local::device_auth::keystore::KeyManager;
+use local::types::ble_config::BleConfig;
 use local::types::config::Config;
 
 use std::fs::File;
@@ -32,5 +33,12 @@ async fn main() -> () {
 
     let store = Arc::new(Mutex::new(store));
 
-    ble_client::start(vec![], config.device_ble_name, channel, store).await
+    let ble_config = BleConfig {
+        device_ble_name: config.device_ble_name,
+        service_uuid: config.service_uuid,
+        char_uuid: config.char_uuid,
+        desc_uuid: config.desc_uuid,
+    };
+
+    ble_client::start(vec![], ble_config, channel, store).await
 }

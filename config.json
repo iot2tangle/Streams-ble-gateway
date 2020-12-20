@@ -3,7 +3,10 @@
         "DEVICE_ID_1",
         "DEVICE_ID_2"
     ],
-    "device_ble_name": "/org/bluez/hci0/dev_73_8E_F3_0C_0B_CF",
+    "device_ble_name": "/org/bluez/hci0/dev_67_8A_2D_52_CB_60",
+    "service_uuid": "00000192-0000-1000-8000-00805f9b34fb",
+    "char_uuid": "00000777-0000-1000-8000-00805f9b34fb",
+    "desc_uuid": "00008888-0000-1000-8000-00805f9b34fb",
     "node": "https://nodes.iota.cafe:443",
     "mwm": 14,
     "local_pow": false
