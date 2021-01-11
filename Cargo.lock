@@ -285,6 +285,26 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "cf1de2fe8c75bc145a2f577add951f8134889b4795d47466a54a5c846d691693"
 
 [[package]]
+name = "ble-gateway"
+version = "0.1.0"
+dependencies = [
+ "anyhow",
+ "base64 0.12.3",
+ "blurz",
+ "btleplug",
+ "failure",
+ "gateway_core",
+ "once_cell",
+ "rand 0.7.3",
+ "regex",
+ "rust-crypto",
+ "serde",
+ "serde_derive",
+ "serde_json",
+ "tokio",
+]
+
+[[package]]
 name = "block"
 version = "0.1.6"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1944,27 +1964,6 @@ name = "stdweb-internal-runtime"
 version = "0.1.5"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "213701ba3370744dcd1a12960caa4843b3d68b4d1c0a5d575e0d65b2ee9d16c0"
-
-[[package]]
-name = "streams-ble-gateway"
-version = "0.1.0"
-dependencies = [
- "anyhow",
- "base64 0.12.3",
- "blurz",
- "btleplug",
- "failure",
- "gateway_core",
- "lazy_static",
- "once_cell",
- "rand 0.7.3",
- "regex",
- "rust-crypto",
- "serde",
- "serde_derive",
- "serde_json",
- "tokio",
-]
 
 [[package]]
 name = "subtle"

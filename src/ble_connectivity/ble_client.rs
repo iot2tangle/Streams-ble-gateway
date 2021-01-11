@@ -2,8 +2,9 @@ extern crate blurz;
 extern crate regex;
 
 use crate::ble_connectivity::handlers::handle_sensor_data;
-use crate::device_auth::keystore::KeyManager;
-use crate::types::ble_config::BleConfig;
+use crate::timestamp_in_sec;
+use crate::types::sensor_data::SensorData;
+use crate::types::sensor_type::SensorType;
 use gateway_core::gateway::publisher::Channel;
 
 use std::sync::{Arc, Mutex};
@@ -15,86 +16,83 @@ use std::str;
 extern crate btleplug;
 extern crate rand;
 
-#[cfg(target_os = "linux")]
-use blurz::bluetooth_adapter::BluetoothAdapter;
 use blurz::bluetooth_device::BluetoothDevice;
-use blurz::bluetooth_discovery_session::BluetoothDiscoverySession;
 use blurz::bluetooth_gatt_characteristic::BluetoothGATTCharacteristic;
-use blurz::bluetooth_gatt_descriptor::BluetoothGATTDescriptor;
 use blurz::bluetooth_gatt_service::BluetoothGATTService;
 use blurz::bluetooth_session::BluetoothSession;
-use regex::Regex;
-
-const UUID_REGEX: &str = r"([0-9a-f]{8})-(?:[0-9a-f]{4}-){3}[0-9a-f]{12}";
-lazy_static! {
-    static ref RE: Regex = Regex::new(UUID_REGEX).unwrap();
-}
 
 ///
 /// Starts the server on the provided port, the server will hand over requests to the handler functions
 ///
-pub async fn start(
-    device_list: Vec<String>,
-    ble_config: BleConfig,
-    channel: Arc<Mutex<Channel>>,
-    keystore: Arc<Mutex<KeyManager>>,
-) -> () {
+pub async fn start(device_list: Vec<String>, interval: u64, channel: Arc<Mutex<Channel>>) -> () {
     let session = &BluetoothSession::create_session(None).unwrap();
-    let adapter: BluetoothAdapter = BluetoothAdapter::init(session).unwrap();
-    let adapter_id = adapter.get_id();
-    let discover_session = BluetoothDiscoverySession::create_session(&session, adapter_id).unwrap();
 
-    discover_session.start_discovery().unwrap();
-    let devices = adapter.get_device_list().unwrap();
-    discover_session.stop_discovery().unwrap();
-
-    println!("Scanning..");
-    for device_path in devices {
-        let device = BluetoothDevice::new(session, device_path.to_string());
-        println!("{:?}-{:?}", device.get_address(), device.get_name());
-    }
-
-    let device = BluetoothDevice::new(session, ble_config.device_ble_name);
-
+    //Main event loop
     loop {
-        if let Err(e) = device.connect(30000) {
-            println!("Failed to connect, trying again....");
-            println!("{}", e);
-        } else {
-            println!("Connected!");
-            break;
-        }
-        thread::sleep(Duration::from_millis(8000));
-    }
-    loop {
-        let services_list = device.get_gatt_services().unwrap();
+        for device in &device_list {
+            let device_path = format!("/org/bluez/hci0/dev_{}", device.replace(":", "_"));
 
-        for service_path in services_list {
-            let service = BluetoothGATTService::new(session, service_path.to_string());
-            let uuid_service = service.get_uuid().unwrap();
+            let device = BluetoothDevice::new(session, device_path);
+            if let Err(_) = device.connect(30000) {
+                println!("Failed to connect, trying again in next round....");
+                continue;
+            }
 
-            if uuid_service == ble_config.service_uuid {
-                let characteristics = service.get_gatt_characteristics().unwrap();
-                for characteristic_path in characteristics {
-                    let characteristic =
-                        BluetoothGATTCharacteristic::new(session, characteristic_path);
-                    let uuid_char = characteristic.get_uuid().unwrap();
+            let mut data_package = SensorData {
+                iot2tangle: vec![],
+                device: device.get_name().unwrap().clone(),
+                timestamp: serde_json::to_value(timestamp_in_sec()).unwrap(),
+            };
+            let services_list = device.get_gatt_services().unwrap();
 
-                    if uuid_char == ble_config.char_uuid {
-                        let descriptors = characteristic.get_gatt_descriptors().unwrap();
-                        for descriptor_path in descriptors {
-                            let descriptor = BluetoothGATTDescriptor::new(session, descriptor_path);
-                            let uuid_desc = descriptor.get_uuid().unwrap();
-                            let value = descriptor.read_value(None).unwrap();
+            for service_path in services_list {
+                let service = BluetoothGATTService::new(session, service_path.to_string());
+                let uuid_service = service.get_uuid().unwrap();
 
-                            if uuid_desc == ble_config.desc_uuid {
-                                println!("Value Sent {:?}", str::from_utf8(&value).unwrap());
-                            }
+                if uuid_service.starts_with("00055000-0000-0000-") {
+                    let mut characteristics = service.get_gatt_characteristics().unwrap();
+                    characteristics.reverse();
+
+                    if characteristics.len() < 1usize {
+                        continue;
+                    }
+
+                    let first_value =
+                        BluetoothGATTCharacteristic::new(session, characteristics[0].clone())
+                            .read_value(None)
+                            .unwrap();
+
+                    let service_name = str::from_utf8(&first_value).unwrap().replace("\\", "");
+
+                    let sensor_obj: serde_json::Value =
+                        serde_json::from_str(&service_name).unwrap();
+                    let name = sensor_obj["Name"].as_str().unwrap().to_string();
+
+                    let mut sensor_type = SensorType {
+                        sensor: name,
+                        data: vec![],
+                    };
+
+                    for characteristic_path in characteristics.split_off(1) {
+                        let characteristic =
+                            BluetoothGATTCharacteristic::new(session, characteristic_path);
+                        let uuid_char = characteristic.get_uuid().unwrap();
+
+                        if uuid_char.starts_with("00055000-0000-0000-") {
+                            let value = characteristic.read_value(None).unwrap();
+                            let str_value = str::from_utf8(&value).unwrap();
+                            let data: serde_json::Value = serde_json::from_str(str_value).unwrap();
+                            sensor_type.data.push(data);
                         }
                     }
+                    data_package.iot2tangle.push(sensor_type);
                 }
             }
+
+            let data_string = serde_json::to_string(&data_package).unwrap();
+
+            handle_sensor_data(data_string, &channel);
         }
-        thread::sleep(Duration::from_millis(10000));
+        thread::sleep(Duration::from_secs(interval));
     }
 }

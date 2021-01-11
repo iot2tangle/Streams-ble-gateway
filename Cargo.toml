@@ -1,8 +1,12 @@
 [package]
-name = "streams-ble-gateway"
+name = "ble-gateway"
 version = "0.1.0"
 authors = ["AleBuser <4l3bu53r@gmail.com>"]
 edition = "2018"
+
+[[bin]]
+name="scan"
+path="bin/scan.rs"
 
 [lib]
 name = "local"
@@ -21,6 +25,5 @@ rand = "0.7.3"
 base64 = "^0.12"
 blurz = "0.4.0"
 regex = "1"
-lazy_static = "1.4.0"
 once_cell = "1.4.1"
 btleplug = "0.5.4"

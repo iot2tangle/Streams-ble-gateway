@@ -1,12 +1,8 @@
 {
-    "whitelisted_device_ids": [
-        "DEVICE_ID_1",
-        "DEVICE_ID_2"
+    "device_ids": [
+        "24:6F:28:8F:80:36"
     ],
-    "device_ble_name": "/org/bluez/hci0/dev_67_8A_2D_52_CB_60",
-    "service_uuid": "00000192-0000-1000-8000-00805f9b34fb",
-    "char_uuid": "00000777-0000-1000-8000-00805f9b34fb",
-    "desc_uuid": "00008888-0000-1000-8000-00805f9b34fb",
+    "reading_interval": 30,
     "node": "https://nodes.iota.cafe:443",
     "mwm": 14,
     "local_pow": false
