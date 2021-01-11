@@ -1,30 +1,24 @@
 extern crate blurz;
-extern crate regex;
 
 use crate::ble_connectivity::handlers::handle_sensor_data;
 use crate::timestamp_in_sec;
 use crate::types::sensor_data::SensorData;
 use crate::types::sensor_type::SensorType;
-use gateway_core::gateway::publisher::Channel;
-
-use std::sync::{Arc, Mutex};
-use std::thread;
-use std::time::Duration;
-
-use std::str;
-
-extern crate btleplug;
-extern crate rand;
 
 use blurz::bluetooth_device::BluetoothDevice;
 use blurz::bluetooth_gatt_characteristic::BluetoothGATTCharacteristic;
 use blurz::bluetooth_gatt_service::BluetoothGATTService;
 use blurz::bluetooth_session::BluetoothSession;
+use gateway_core::gateway::publisher::Channel;
+use std::str;
+use std::sync::{Arc, Mutex};
+use std::thread;
+use std::time::Duration;
 
 ///
 /// Starts the server on the provided port, the server will hand over requests to the handler functions
 ///
-pub async fn start(device_list: Vec<String>, interval: u64, channel: Arc<Mutex<Channel>>) -> () {
+pub fn start(device_list: Vec<String>, interval: u64, channel: Arc<Mutex<Channel>>) -> () {
     let session = &BluetoothSession::create_session(None).unwrap();
 
     //Main event loop

@@ -5,8 +5,7 @@ use local::types::config::Config;
 use std::fs::File;
 use std::sync::{Arc, Mutex};
 
-#[tokio::main]
-async fn main() -> () {
+fn main() -> () {
     //read configuration file
     let config: Config = serde_json::from_reader(File::open("config.json").unwrap()).unwrap();
 
@@ -27,5 +26,5 @@ async fn main() -> () {
         "\n To read the messages copy the channel root into https://explorer.iot2tangle.io/ \n "
     );
 
-    ble_client::start(config.device_ids, config.reading_interval, channel).await
+    ble_client::start(config.device_ids, config.reading_interval, channel)
 }
