@@ -4,6 +4,9 @@ use std::sync::{Arc, Mutex};
 
 use gateway_core::gateway::publisher::Channel;
 
+///
+/// Sends the data read from the devices to the Streams Channel
+///
 pub fn handle_sensor_data(data: String, channel: &Arc<Mutex<Channel>>) -> () {
     let data = data.to_owned();
     let json_data: serde_json::Result<SensorData> = serde_json::from_str(&data);

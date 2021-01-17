@@ -1,6 +1,6 @@
 {
     "device_ids": [
-        "24:6F:28:8F:80:36"
+        "XX:XX:XX:XX:XX"
     ],
     "reading_interval": 30,
     "node": "https://nodes.iota.cafe:443",

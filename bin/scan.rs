@@ -3,6 +3,9 @@ use blurz::bluetooth_device::BluetoothDevice;
 use blurz::bluetooth_discovery_session::BluetoothDiscoverySession;
 use blurz::bluetooth_session::BluetoothSession;
 
+///
+/// Scans and lists all Named Bluetooth devices in reach
+///
 fn main() -> () {
     let session = &BluetoothSession::create_session(None).unwrap();
     let adapter: BluetoothAdapter = BluetoothAdapter::init(session).unwrap();

@@ -1,9 +1,3 @@
-//!
-//! Channel Library
-//!
-#![deny()]
-//#![cfg_attr(not(debug_assertions), deny(warnings))]
-
 extern crate gateway_core;
 pub mod ble_connectivity;
 pub mod types;

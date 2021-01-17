@@ -16,8 +16,11 @@ use std::thread;
 use std::time::Duration;
 
 ///
-/// Starts the server on the provided port, the server will hand over requests to the handler functions
-///
+/// Starts the BLE client and tries to connect to all devices listed in config.json
+/// For each device builds a iot2tangle compatible json which is published over streams
+
+const BASE_UUID: &'static str = "00055000-0000-0000-";
+
 pub fn start(device_list: Vec<String>, interval: u64, channel: Arc<Mutex<Channel>>) -> () {
     let session = &BluetoothSession::create_session(None).unwrap();
 
@@ -43,7 +46,7 @@ pub fn start(device_list: Vec<String>, interval: u64, channel: Arc<Mutex<Channel
                 let service = BluetoothGATTService::new(session, service_path.to_string());
                 let uuid_service = service.get_uuid().unwrap();
 
-                if uuid_service.starts_with("00055000-0000-0000-") {
+                if uuid_service.starts_with(BASE_UUID) {
                     let mut characteristics = service.get_gatt_characteristics().unwrap();
                     characteristics.reverse();
 
@@ -72,7 +75,7 @@ pub fn start(device_list: Vec<String>, interval: u64, channel: Arc<Mutex<Channel
                             BluetoothGATTCharacteristic::new(session, characteristic_path);
                         let uuid_char = characteristic.get_uuid().unwrap();
 
-                        if uuid_char.starts_with("00055000-0000-0000-") {
+                        if uuid_char.starts_with(BASE_UUID) {
                             let value = characteristic.read_value(None).unwrap();
                             let str_value = str::from_utf8(&value).unwrap();
                             let data: serde_json::Value = serde_json::from_str(str_value).unwrap();
