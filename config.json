@@ -1,9 +1,9 @@
 {
     "device_ids": [
-        "XX:XX:XX:XX:XX"
+        "XX:XX:XX:XX:XX:XX"
     ],
     "reading_interval": 30,
-    "node": "https://nodes.iota.cafe:443",
+    "node": "https://nodes.thetangle.org:443",
     "mwm": 14,
     "local_pow": false
 }
